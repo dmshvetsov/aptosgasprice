@@ -78,3 +78,9 @@ button:focus-visible {
 .text-muted {
   color: rgb(156 163 175);
 }
+
+.gas-chart {
+  width: 100%;
+  height: auto;
+  margin: 4rem 0;
+}
