@@ -144,7 +144,7 @@ function GasPrice(props: GasPriceProps) {
 }
 
 type ChartProps = {
-  updates: { value: number; time: number; extra: string }
+  updates: { value: number; time: number }
 }
 
 function Chart(props: ChartProps) {
@@ -206,7 +206,6 @@ function PriceDashboard() {
         updates={{
           value: aptosGasPrice?.standard ?? 0,
           time: Math.round((aptosGasPrice?.time ?? 0) / 1000),
-          extra: 'wow'
         }}
       />
       <button className="pause-btn" onClick={() => setPaused((current) => !current)}>
