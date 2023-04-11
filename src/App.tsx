@@ -79,13 +79,15 @@ function useAptosTransactionsGasPrice(
 
   if (query.data) {
     if (isEnv('development')) {
-      console.log(
+      console.debug(
         time,
         query.data
           .filter((tx: any) => typeof tx.gas_unit_price !== 'undefined')
           .map(
             (tx: any) =>
-              `v ${tx.version}, gas unit price ${tx.gas_unit_price ?? 0}`
+              `v ${tx.version} p ${tx.gas_unit_price ?? 0} u ${
+                tx.gas_used ?? 0
+              }`
           )
       )
     }
