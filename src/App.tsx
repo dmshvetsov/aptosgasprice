@@ -17,6 +17,12 @@ type UseAptosEstimatedGasPriceOptions = {
   refetchInterval?: number
 }
 
+/**
+ * In an non-congested network, the gas estimate will always be the lowest value.
+ * There was some issues with the way the gas was being estimated,
+ * so it’s been changed to send the lowest amount for now.
+ * Future updates will provide more accurate estimates
+ */
 function useAptosEstimatedGasPrice(
   opts: UseAptosEstimatedGasPriceOptions = {}
 ): AptosGasPrice | undefined {
