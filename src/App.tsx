@@ -164,11 +164,22 @@ function Chart(props: ChartProps) {
 
     if (!chartRef.current) {
       const chart = createChart(containerRef.current, {
-        width: 800,
-        height: 400,
+        width: containerRef.current.offsetWidth,
+        height: containerRef.current.offsetHeight,
         timeScale: { visible: true, timeVisible: true },
       })
       chartRef.current = chart
+
+      new ResizeObserver((entries) => {
+        if (
+          entries.length === 0 ||
+          entries[0].target !== containerRef.current
+        ) {
+          return
+        }
+        const newRect = entries[0].contentRect
+        chart.applyOptions({ height: newRect.height, width: newRect.width })
+      }).observe(containerRef.current)
 
       if (!dataRef.current) {
         dataRef.current = chart.addBaselineSeries({
@@ -208,7 +219,10 @@ function PriceDashboard() {
           time: Math.round((aptosGasPrice?.time ?? 0) / 1000),
         }}
       />
-      <button className="pause-btn" onClick={() => setPaused((current) => !current)}>
+      <button
+        className="pause-btn"
+        onClick={() => setPaused((current) => !current)}
+      >
         {isPaused ? 'resume' : 'pause'}
       </button>
       <GasPrice data={aptosGasPrice} />
