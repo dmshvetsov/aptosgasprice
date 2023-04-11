@@ -121,7 +121,7 @@ function useAptosTransactionsGasPrice(
 
     return {
       fast: maxPrice,
-      standard: totalTxsGasUnitPrices / numTxs,
+      standard: Math.round(totalTxsGasUnitPrices / numTxs),
       slow: minPrice,
       time: Date.now(),
     }
@@ -139,7 +139,12 @@ function GasPrice(props: GasPriceProps) {
     return <code>loading ...</code>
   }
 
-  const { time: _omittedProps, ...dataToDisplay } = props.data
+  const dataToDisplay = {
+    fast: props.data.fast,
+    standard: props.data.standard,
+    slow: props.data.slow,
+  }
+
   return <code>current price: {JSON.stringify(dataToDisplay, null, 2)}</code>
 }
 
