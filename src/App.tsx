@@ -91,22 +91,29 @@ function useAptosTransactionsGasPrice(
           )
       )
     }
-    const [totalTxsGasUnitPrices, numTxs, maxPrice, minPrice] = query.data.reduce(
-      (acc, tx) => {
-        if ('gas_unit_price' in tx && 'gas_used' in tx) {
-          const txGasUnitPrice = parseInt(tx.gas_unit_price, 10)
-          if (isNaN(txGasUnitPrice)) {
-            return acc
+
+    const [totalTxsGasUnitPrices, numTxs, maxPrice, minPrice] =
+      query.data.reduce(
+        (acc, tx) => {
+          if ('gas_unit_price' in tx && 'gas_used' in tx) {
+            const txGasUnitPrice = parseInt(tx.gas_unit_price, 10)
+            if (isNaN(txGasUnitPrice)) {
+              return acc
+            }
+
+            const [total, count, max, min] = acc
+            return [
+              total + txGasUnitPrice,
+              count + 1,
+              Math.max(max, txGasUnitPrice),
+              Math.min(min, txGasUnitPrice),
+            ]
           }
 
-          const [total, count, max, min] = acc
-          return [total + txGasUnitPrice, count + 1, Math.max(max, txGasUnitPrice), Math.min(min, txGasUnitPrice)]
-        }
-
-        return acc
-      },
-      [0, 0, 0, 1_000_000_000]
-    )
+          return acc
+        },
+        [0, 0, 0, 1_000_000_000]
+      )
 
     if (numTxs === 0) {
       return undefined
@@ -132,16 +139,12 @@ function GasPrice(props: GasPriceProps) {
     return <code>loading ...</code>
   }
 
-  const { time: _omittedProps, ...dataToDisplay } = props.data;
-  return (
-    <code>
-      current price: {JSON.stringify(dataToDisplay, null, 2)}
-    </code>
-  )
+  const { time: _omittedProps, ...dataToDisplay } = props.data
+  return <code>current price: {JSON.stringify(dataToDisplay, null, 2)}</code>
 }
 
 type ChartProps = {
-  updates: { value: number; time: number, extra: string }
+  updates: { value: number; time: number; extra: string }
 }
 
 function Chart(props: ChartProps) {
