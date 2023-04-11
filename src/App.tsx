@@ -1,6 +1,6 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import { AptosClient } from 'aptos'
-import { getRpcUrl } from './config'
+import { getRpcUrl, isEnv } from './config'
 import { useQuery, QueryClient, QueryClientProvider } from 'react-query'
 import { createChart, IChartApi, ISeriesApi } from 'lightweight-charts'
 
@@ -13,12 +13,12 @@ type AptosGasPrice = {
   time: number
 }
 
-type UseAptosGasPriceOptions = {
+type UseAptosEstimatedGasPriceOptions = {
   refetchInterval?: number
 }
 
 function useAptosEstimatedGasPrice(
-  opts: UseAptosGasPriceOptions = {}
+  opts: UseAptosEstimatedGasPriceOptions = {}
 ): AptosGasPrice | undefined {
   const query = useQuery(
     ['aptos', 'estimated-gas-price'],
@@ -28,7 +28,8 @@ function useAptosEstimatedGasPrice(
     },
     {
       refetchOnMount: false,
-      refetchInterval: 1000,
+      refetchIntervalInBackground: true,
+      refetchInterval: 3000,
       ...opts,
     }
   )
@@ -45,20 +46,94 @@ function useAptosEstimatedGasPrice(
   return undefined
 }
 
+type UseAptosTransactionsGasPriceOptions = {
+  enabled?: boolean
+  refetchInterval?: number
+  numTx?: 5 | 10 | 25 | 50
+}
+
+function useAptosTransactionsGasPrice(
+  opts: UseAptosTransactionsGasPriceOptions = {}
+): AptosGasPrice | undefined {
+  const { numTx: numTxOpts, ...axiosOpts } = opts
+  const query = useQuery(
+    ['aptos', 'estimated-gas-price'],
+    async () => {
+      const client = new AptosClient(getRpcUrl())
+      return client.getTransactions({ limit: numTxOpts ?? 5 })
+    },
+    {
+      refetchOnMount: false,
+      refetchIntervalInBackground: true,
+      refetchInterval: 3000,
+      ...axiosOpts,
+    }
+  )
+  const time = Date.now()
+
+  if (query.data) {
+    if (isEnv('development')) {
+      console.log(
+        time,
+        query.data
+          .filter((tx: any) => typeof tx.gas_unit_price !== 'undefined')
+          .map(
+            (tx: any) =>
+              `v ${tx.version}, gas unit price ${tx.gas_unit_price ?? 0}`
+          )
+      )
+    }
+    const [totalTxsGasUnitPrices, numTxs, maxPrice, minPrice] = query.data.reduce(
+      (acc, tx) => {
+        if ('gas_unit_price' in tx && 'gas_used' in tx) {
+          const txGasUnitPrice = parseInt(tx.gas_unit_price, 10)
+          if (isNaN(txGasUnitPrice)) {
+            return acc
+          }
+
+          const [total, count, max, min] = acc
+          return [total + txGasUnitPrice, count + 1, Math.max(max, txGasUnitPrice), Math.min(min, txGasUnitPrice)]
+        }
+
+        return acc
+      },
+      [0, 0, 0, 1_000_000_000]
+    )
+
+    if (numTxs === 0) {
+      return undefined
+    }
+
+    return {
+      fast: maxPrice,
+      standard: totalTxsGasUnitPrices / numTxs,
+      slow: minPrice,
+      time: Date.now(),
+    }
+  }
+
+  return undefined
+}
+
 type GasPriceProps = {
   data?: AptosGasPrice
 }
 
 function GasPrice(props: GasPriceProps) {
+  if (!props.data) {
+    return <code>loading ...</code>
+  }
+
+  const { time: _omittedProps, ...dataToDisplay } = props.data;
   return (
     <code>
-      {props.data ? JSON.stringify(props.data, null, 2) : 'loading ...'}
+      current price: {JSON.stringify(dataToDisplay, null, 2)}
     </code>
   )
 }
 
 type ChartProps = {
-  updates: { value: number; time: number }
+  updates: { value: number; time: number, extra: string }
 }
 
 function Chart(props: ChartProps) {
@@ -87,12 +162,12 @@ function Chart(props: ChartProps) {
       if (!dataRef.current) {
         dataRef.current = chart.addBaselineSeries({
           baseValue: { type: 'price', price: props.updates.value },
-          topLineColor: 'rgba( 38, 166, 154, 1)',
-          topFillColor1: 'rgba( 38, 166, 154, 0.28)',
-          topFillColor2: 'rgba( 38, 166, 154, 0.05)',
-          bottomLineColor: 'rgba( 239, 83, 80, 1)',
-          bottomFillColor1: 'rgba( 239, 83, 80, 0.05)',
-          bottomFillColor2: 'rgba( 239, 83, 80, 0.28)',
+          topLineColor: 'rgba( 239, 83, 80, 1)',
+          topFillColor1: 'rgba( 239, 83, 80, 0.05)',
+          topFillColor2: 'rgba( 239, 83, 80, 0.28)',
+          bottomLineColor: 'rgba( 38, 166, 154, 1)',
+          bottomFillColor1: 'rgba( 38, 166, 154, 0.28)',
+          bottomFillColor2: 'rgba( 38, 166, 154, 0.05)',
         })
       }
 
@@ -108,7 +183,11 @@ function Chart(props: ChartProps) {
 }
 
 function PriceDashboard() {
-  const aptosGasPrice = useAptosEstimatedGasPrice({ refetchInterval: 1000 })
+  const [isPaused, setPaused] = useState(false)
+  const aptosGasPrice = useAptosTransactionsGasPrice({
+    numTx: 25,
+    enabled: !isPaused,
+  })
 
   return (
     <div>
@@ -116,8 +195,12 @@ function PriceDashboard() {
         updates={{
           value: aptosGasPrice?.standard ?? 0,
           time: Math.round((aptosGasPrice?.time ?? 0) / 1000),
+          extra: 'wow'
         }}
       />
+      <button className="pause-btn" onClick={() => setPaused((current) => !current)}>
+        {isPaused ? 'resume' : 'pause'}
+      </button>
       <GasPrice data={aptosGasPrice} />
     </div>
   )
