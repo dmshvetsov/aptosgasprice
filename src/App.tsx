@@ -145,7 +145,7 @@ function GasPrice(props: GasPriceProps) {
     slow: props.data.slow,
   }
 
-  return <code>current price: {JSON.stringify(dataToDisplay, null, 2)}</code>
+  return <code>estimated price (Octa) {JSON.stringify(dataToDisplay, null, 2)}</code>
 }
 
 type ChartProps = {
