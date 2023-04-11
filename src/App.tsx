@@ -145,7 +145,9 @@ function GasPrice(props: GasPriceProps) {
     slow: props.data.slow,
   }
 
-  return <code>estimated price (Octa) {JSON.stringify(dataToDisplay, null, 2)}</code>
+  return (
+    <code>estimated price (Octa) {JSON.stringify(dataToDisplay, null, 2)}</code>
+  )
 }
 
 type ChartProps = {
@@ -240,9 +242,19 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <h1>Aptos Gas Unit Price</h1>
       <PriceDashboard />
-      <p className="text-muted">
-        <small>rpc url: {getRpcUrl()}</small>
-      </p>
+      <footer>
+        <p>
+          <small>
+            with questions and feature requests DM on twitter{' '}
+            <strong>
+              <a href="https://twitter.com/dmshvetsov">@dmshvetsov</a>
+            </strong>
+          </small>
+        </p>
+        <p className="text-muted">
+          <small>rpc url: {getRpcUrl()}</small>
+        </p>
+      </footer>
     </QueryClientProvider>
   )
 }
